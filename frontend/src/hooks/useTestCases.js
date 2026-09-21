@@ -127,6 +127,10 @@ function useTestCases(userId) {
       setSavedTestCases([]);
       setActiveRequirementId(requirementId);
 
+      setDraftTestCases([]);
+      setRequirement('');
+      setGenerationError(null);
+
       try {
         const data = await getTestCasesForRequirement(
           userId,

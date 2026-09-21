@@ -75,13 +75,14 @@ function TestCaseGeneratorPage() {
   // ── After saving ─────────────────────────────────────────────
   const handleRequirementSaved = useCallback(
     (requirementId) => {
-      setSelectedRequirementId(requirementId);
+      setSelectedRequirementId(null);
+      tc.resetWorkspace();
       setIsCreatingNew(false);
 
       // Refresh sidebar
       reqs.load();
     },
-    [setSelectedRequirementId, reqs]
+    [setSelectedRequirementId, tc, reqs]
   );
 
   // ── Delete ───────────────────────────────────────────────────
