@@ -1,0 +1,369 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Esperia Test Case Generator",
+    "description": "API collection for the Esperia Studio Test Case Generator backend assessment.\n\nWorkflow:\n1. Health check\n2. Generate draft test cases (NO DB write)\n3. Save requirement + test cases (explicit persist)\n4. List / get requirements\n5. Get / update / delete test cases\n\nCollection variables: baseUrl, userId, requirementId",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api"
+    },
+    {
+      "key": "userId",
+      "value": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    {
+      "key": "requirementId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('API reports healthy', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.message).to.eql('API is healthy');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Generate Test Cases",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns draft testCases array', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.testCases).to.be.an('array');",
+              "  pm.expect(json.data.testCases.length).to.be.above(0);",
+              "});",
+              "pm.test('Generate does not return requirementId (draft only)', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.requirementId).to.be.undefined;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"requirement\": \"Users should be able to log in using email and password. On successful login they are redirected to the dashboard. Invalid credentials show an error message.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/test-cases/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "test-cases",
+            "generate"
+          ]
+        },
+        "description": "Draft generation only. Does NOT persist to MongoDB. Safe to call repeatedly for regeneration."
+      }
+    },
+    {
+      "name": "4. List Requirements",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns requirements without testCases', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.requirements).to.be.an('array');",
+              "  json.data.requirements.forEach(function (r) {",
+              "    pm.expect(r).to.not.have.property('testCases');",
+              "    pm.expect(r).to.have.property('requirementId');",
+              "    pm.expect(r).to.have.property('prompt');",
+              "  });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requirements?userId={{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "requirements"
+          ],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userId}}"
+            }
+          ]
+        },
+        "description": "Lightweight requirement history. NEVER returns testCases."
+      }
+    },
+    {
+      "name": "5. Get Single Requirement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Does not include testCases', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data).to.not.have.property('testCases');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requirements/{{requirementId}}?userId={{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "requirements",
+            "{{requirementId}}"
+          ],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userId}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Save Test Cases",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "const json = pm.response.json();",
+              "if (json.success && json.data && json.data.requirementId) {",
+              "  pm.collectionVariables.set('requirementId', json.data.requirementId);",
+              "}",
+              "pm.test('Persists requirementId and testCases', function () {",
+              "  pm.expect(json.data.requirementId).to.be.ok;",
+              "  pm.expect(json.data.testCases).to.be.an('array').that.is.not.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"requirement\": \"Users should be able to log in using email and password.\",\n  \"testCases\": [\n    {\n      \"testCaseId\": \"TC-001\",\n      \"title\": \"Login with valid credentials\",\n      \"description\": \"Verify that a registered user can log in.\",\n      \"type\": \"positive\",\n      \"priority\": \"high\",\n      \"preconditions\": [\"A registered user account exists.\"],\n      \"steps\": [\n        \"Open the login page.\",\n        \"Enter a valid email.\",\n        \"Enter a valid password.\",\n        \"Submit the login form.\"\n      ],\n      \"testData\": {\n        \"email\": \"user@example.com\",\n        \"password\": \"ValidPassword123\"\n      },\n      \"expectedResult\": \"The user is successfully logged in.\"\n    },\n    {\n      \"testCaseId\": \"TC-002\",\n      \"title\": \"Login with invalid password\",\n      \"description\": \"Verify error handling for wrong password.\",\n      \"type\": \"negative\",\n      \"priority\": \"high\",\n      \"preconditions\": [\"A registered user account exists.\"],\n      \"steps\": [\n        \"Open the login page.\",\n        \"Enter a valid email.\",\n        \"Enter an invalid password.\",\n        \"Submit the login form.\"\n      ],\n      \"testData\": {\n        \"email\": \"user@example.com\",\n        \"password\": \"WrongPassword\"\n      },\n      \"expectedResult\": \"An error message is shown and login fails.\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/test-cases",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "test-cases"
+          ]
+        },
+        "description": "Explicit Save. Persists Requirement metadata and TestCaseSet. Omit requirementId to create a new one, or pass an existing requirementId to update."
+      }
+    },
+    {
+      "name": "7. Get Test Cases For Requirement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns test cases for one requirement', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.requirementId).to.eql(pm.collectionVariables.get('requirementId'));",
+              "  pm.expect(json.data.testCases).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requirements/{{requirementId}}/test-cases?userId={{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "requirements",
+            "{{requirementId}}",
+            "test-cases"
+          ],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userId}}"
+            }
+          ]
+        },
+        "description": "Lazy-load test cases for a single requirement. Ownership verified via userId + requirementId."
+      }
+    },
+    {
+      "name": "8. Update Test Cases",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Updated test cases returned', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.testCases[0].title).to.include('updated');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"testCases\": [\n    {\n      \"testCaseId\": \"TC-001\",\n      \"title\": \"Login with valid credentials (updated)\",\n      \"description\": \"Verify that a registered user can log in.\",\n      \"type\": \"positive\",\n      \"priority\": \"critical\",\n      \"preconditions\": [\"A registered user account exists.\"],\n      \"steps\": [\n        \"Open the login page.\",\n        \"Enter a valid email.\",\n        \"Enter a valid password.\",\n        \"Submit the login form.\"\n      ],\n      \"testData\": {\n        \"email\": \"user@example.com\",\n        \"password\": \"ValidPassword123\"\n      },\n      \"expectedResult\": \"The user is successfully logged in and redirected to the dashboard.\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/requirements/{{requirementId}}/test-cases",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "requirements",
+            "{{requirementId}}",
+            "test-cases"
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Delete Requirement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Delete reports success', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/requirements/{{requirementId}}?userId={{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "requirements",
+            "{{requirementId}}"
+          ],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userId}}"
+            }
+          ]
+        },
+        "description": "Deletes requirement metadata and associated TestCaseSet. Ownership verified."
+      }
+    }
+  ]
+}
